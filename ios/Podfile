@@ -1,4 +1,6 @@
-# Resolve react_native_pods.rb with node to allow for hoisting
+ENV['NODE_BINARY'] = '/usr/local/bin/node'
+ENV['PATH'] = "/opt/homebrew/bin:/usr/local/bin:#{ENV['PATH']}"
+
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
@@ -30,5 +32,13 @@ target 'BurnFit' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    installer.pods_project.targets.each do |t|
+      t.build_configurations.each do |bc|
+        bc.build_settings['NODE_BINARY'] = ENV['NODE_BINARY']
+        bc.build_settings['PATH'] = "/opt/homebrew/bin:/usr/local/bin:$(PATH)"
+      end
+    end
+
   end
 end
