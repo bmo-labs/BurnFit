@@ -1,8 +1,8 @@
 import { TabRoute } from './tabRoutes';
-import HomeScreen from '../screens/HomeScreen';
-import CalendarScreen from '../screens/CalendarScreen';
-import LibraryScreen from '../screens/LibraryScreen';
-import MyPageScreen from '../screens/MyPageScreen';
+import HomeScreen from '../features/home/HomeScreen';
+import CalendarScreen from '../features/calendar/screens/CalendarScreen';
+import LibraryScreen from '../features/library/LibraryScreen';
+import MyPageScreen from '../features/mypage/MyPageScreen';
 import type { ComponentType } from 'react';
 
 type TabItem = {
