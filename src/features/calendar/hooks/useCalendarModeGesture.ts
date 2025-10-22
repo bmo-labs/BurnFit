@@ -1,6 +1,5 @@
 import { Gesture, type GestureType } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
-import { type RefObject } from 'react';
 import { CalendarMode } from '../types';
 
 type Params = {

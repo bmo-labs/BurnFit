@@ -67,10 +67,15 @@ export function useCalendarState() {
         setAnchorDate(d => (mode === 'month' ? getNextMonthStart(d) : getNextWeekStart(d)));
     }, [mode]);
 
-    const switchMode = useCallback((target: CalendarMode, keepVisibleDate = true) => {
-        setMode(target);
-        if (keepVisibleDate) setAnchorDate(a => a); 
-    }, []);
+    const switchMode = useCallback(
+        (target: CalendarMode, opts?: { anchor?: Date }) => {
+            setMode(target);
+            if (opts?.anchor) {
+                setAnchorDate(stripToDay(opts.anchor));
+            }
+        },
+        []
+    );
 
     return {
         mode,
