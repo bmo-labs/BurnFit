@@ -1,20 +1,17 @@
 import React, { useEffect, useRef } from 'react';
 import { FlatList, View, useWindowDimensions } from 'react-native';
-import { CalendarPage } from '../types';
 import CalendarPageAnimatedView from './CalendarPageAnimatedView';
 import { type SharedValue } from 'react-native-reanimated';
-import { monthWeeksCount, weekIndexOf } from '../utils/dateUtils';
+import type { RenderPage } from '../types';
+
 
 type Props = {
-    pages: CalendarPage[];
+    pages: RenderPage[];              
     modeProgress: SharedValue<number>;
     selectedDate: Date;
     onSelectDate: (d: Date) => void;
     goPrevPage: () => void;
     goNextPage: () => void;
-    getMonthDays: (startDate: Date) => Date[];
-    getWeekDays: (startDate: Date) => Date[];
-    showWeekOverlay: boolean;
 };
 
 export default function CalendarPagerView({
@@ -24,12 +21,9 @@ export default function CalendarPagerView({
     onSelectDate,
     goPrevPage,
     goNextPage,
-    getMonthDays,
-    getWeekDays,
-    showWeekOverlay,
 }: Props) {
     const { width } = useWindowDimensions();
-    const ref = useRef<FlatList<CalendarPage>>(null);
+    const ref = useRef<FlatList<RenderPage>>(null);
 
     useEffect(() => {
         requestAnimationFrame(() => {
@@ -46,24 +40,18 @@ export default function CalendarPagerView({
             keyExtractor={(p) => p.key}
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => {
-                const rows = monthWeeksCount(item.startDate);
-                let selectedRow = weekIndexOf(item.startDate, selectedDate);
-                if (selectedRow < 0) selectedRow = 0;
-                if (selectedRow >= rows) selectedRow = rows - 1;
-
                 return (
                     <View style={{ width }}>
                         <CalendarPageAnimatedView
                             page={item}
-                            selectedDate={selectedDate}
-                            onSelectDate={onSelectDate}
-                            getMonthDays={getMonthDays}
-                            getWeekDays={getWeekDays}
+                            monthDays={item.monthDays}
+                            weekDays={item.weekDays}
+                            rows={item.rows}
+                            selectedRow={item.selectedRow}
                             modeProgress={modeProgress}
                             cellSize={Math.floor(width / 7)}
-                            rows={rows}
-                            selectedRow={selectedRow}
-                            showWeekOverlay={showWeekOverlay}
+                            selectedDate={selectedDate}
+                            onSelectDate={onSelectDate}
                         />
                     </View>
                 );

@@ -9,14 +9,19 @@ import {
     monthWeeksCount,
     startOfWeek,
     fmtYM,
-    fmtYW
+    fmtYW,
+    weekIndexOf,
+
 } from '../utils/dateUtils';
-import type { CalendarMode, CalendarPage } from '../types';
+import type { CalendarMode, CalendarPage, RenderPage } from '../types';
+import { useCalendarData } from './useCalendarData';
 
 export function useCalendarState() {
+    const today = useMemo(() => stripToDay(new Date()), []);
     const [mode, setMode] = useState<CalendarMode>('month');
     const [anchorDate, setAnchorDate] = useState<Date>(stripToDay(new Date()));
-    const [selectedDate, setSelectedDate] = useState<Date>(anchorDate);
+    const [selectedDate, setSelectedDate] = useState<Date>(today);
+    const { getMonthDays, getWeekDays } = useCalendarData();
 
     const currentPage: CalendarPage = useMemo(() => {
         return mode === 'month'
@@ -63,6 +68,35 @@ export function useCalendarState() {
         setAnchorDate(d => (mode === 'month' ? getPrevMonthStart(d) : getPrevWeekStart(d)));
     }, [mode]);
 
+    const renderPages: RenderPage[] = useMemo(() => {
+        return pages.map(p => {
+            if (mode === 'month') {
+                const monthDays = getMonthDays(p.startDate);
+                const rows = monthWeeksCount(p.startDate);
+                let selectedRow = weekIndexOf(p.startDate, selectedDate);
+                if (selectedRow < 0) selectedRow = 0;
+                if (selectedRow >= rows) selectedRow = rows - 1;
+                return {
+                    ...p,
+                    monthDays,
+                    weekDays: getWeekDays(startOfWeek(selectedDate)),
+                    rows,
+                    selectedRow,
+                };
+            } else {
+                const weekStart = startOfWeek(p.startDate);
+                return {
+                    ...p,
+                    monthDays: [],                     
+                    weekDays: getWeekDays(weekStart), 
+                    rows: 1,
+                    selectedRow: 0,
+                };
+            }
+        });
+    }, [pages, mode, selectedDate, getMonthDays, getWeekDays]);
+
+
     const goNextPage = useCallback(() => {
         setAnchorDate(d => (mode === 'month' ? getNextMonthStart(d) : getNextWeekStart(d)));
     }, [mode]);
@@ -82,7 +116,7 @@ export function useCalendarState() {
         anchorDate,
         selectedDate,
         setSelectedDate,
-        pages,
+        renderPages,
         goPrevPage,
         goNextPage,
         switchMode

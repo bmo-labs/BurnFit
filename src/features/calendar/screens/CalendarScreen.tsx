@@ -1,17 +1,15 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
-
 import CalendarHeader from '../components/CalendarHeader';
 import WeekLabels from '../components/WeekLabels';
 import CalendarPager from '../components/CalendarPagerView';
-
 import { useCalendarState } from '../hooks/useCalendarState';
-import { useCalendarData } from '../hooks/useCalendarData';
 import { useCalendarModeGesture } from '../hooks/useCalendarModeGesture';
 import { startOfWeek, firstDayOfMonth } from '../utils/dateUtils';
+import { scheduleOnRN } from 'react-native-worklets';
 
 export default function CalendarScreen() {
     const {
@@ -19,45 +17,43 @@ export default function CalendarScreen() {
         anchorDate,
         selectedDate,
         setSelectedDate,
-        pages,
+        renderPages,
         goPrevPage,
         goNextPage,
         switchMode,
     } = useCalendarState();
 
-    const { getMonthDays, getWeekDays } = useCalendarData();
-    const [showWeekOverlay, setShowWeekOverlay] = useState(false);
     const modeProgress = useSharedValue(mode === 'month' ? 0 : 1);
 
+    // Week Animation
     const switchToWeekWithTs = useCallback((ts: number) => {
         const anchor = new Date(ts);
         switchMode('week', { anchor });
     }, [switchMode]);
 
+    const collapseToWeek = useCallback(() => {
+        const weekStartTs = startOfWeek(selectedDate).getTime();
+        modeProgress.value = withTiming(1, { duration: 500 }, (finished) => {
+            if (!finished) return;
+            scheduleOnRN(switchToWeekWithTs, weekStartTs);
+        });
+    }, [selectedDate, modeProgress, switchMode]);
+
+    // Month Animation
     const switchToMonthWithTs = useCallback((ts: number) => {
         const anchor = new Date(ts);
         switchMode('month', { anchor });
     }, [switchMode]);
 
-    const collapseToWeek = useCallback(() => {
-        const weekStartTs = startOfWeek(selectedDate).getTime();
-        setShowWeekOverlay(true);
-        modeProgress.value = withTiming(1, { duration: 500 }, (finished) => {
-            if (!finished) return;
-            runOnJS(switchToWeekWithTs)(weekStartTs);
-            runOnJS(setShowWeekOverlay)(false);
-        });
-    }, [modeProgress, switchMode]);
-
-
     const expandToMonth = useCallback(() => {
         const monthStartTs = firstDayOfMonth(selectedDate).getTime();
-        setShowWeekOverlay(false);
-        modeProgress.value = withTiming(0, { duration: 500 }, (finished) => {
-            if (!finished) return;
-            runOnJS(switchToMonthWithTs)(monthStartTs);
+        scheduleOnRN(switchToMonthWithTs, monthStartTs);
+
+        requestAnimationFrame(() => {
+            modeProgress.value = withTiming(0, { duration: 500 });
         });
-    }, [modeProgress, switchMode]);
+
+    }, [selectedDate, modeProgress, switchMode]);
 
     const gesture = useCalendarModeGesture({
         mode,
@@ -83,21 +79,14 @@ export default function CalendarScreen() {
 
                 {/* 캘린더 페이지 뷰 (월/주 접힘/펼침 애니) */}
                 <GestureDetector gesture={gesture}>
-                    <Animated.View >
-                        <Animated.View >
-                            <CalendarPager
-                                pages={pages}
-                                modeProgress={modeProgress}
-                                selectedDate={selectedDate}
-                                onSelectDate={setSelectedDate}
-                                goPrevPage={goPrevPage}
-                                goNextPage={goNextPage}
-                                getMonthDays={getMonthDays}
-                                getWeekDays={getWeekDays}
-                                showWeekOverlay={showWeekOverlay}
-                            />
-                        </Animated.View>
-                    </Animated.View>
+                    <CalendarPager
+                        pages={renderPages}
+                        modeProgress={modeProgress}
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        goPrevPage={goPrevPage}
+                        goNextPage={goNextPage}
+                    />
                 </GestureDetector>
             </View>
         </SafeAreaView>
@@ -105,6 +94,11 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: '#fff' },
-    container: { flex: 1 },
+    safe: {
+        flex: 1,
+        backgroundColor: '#fff'
+    },
+    container: {
+        flex: 1
+    },
 });

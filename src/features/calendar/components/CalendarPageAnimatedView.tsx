@@ -1,51 +1,32 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import CalendarMonthView from './CalendarMonthView';
 import CalendarWeekView from './CalendarWeekView';
-import { startOfWeek, isSameMonth } from '../utils/dateUtils';
 
 type Props = {
     page: { startDate: Date; spanWeeks: number };
-    selectedDate: Date;
-    onSelectDate: (d: Date) => void;
-    getMonthDays: (startDate: Date) => Date[];
-    getWeekDays: (startDate: Date) => Date[];
-    modeProgress: SharedValue<number>;
-    cellSize: number;
+    monthDays: Date[];
+    weekDays: Date[];
     rows: number;
     selectedRow: number;
-    showWeekOverlay: boolean;
+    modeProgress: SharedValue<number>;
+    cellSize: number;
+    selectedDate: Date;
+    onSelectDate: (d: Date) => void;
 };
 
 export default function CalendarPageAnimatedView({
     page,
-    selectedDate,
-    onSelectDate,
-    getMonthDays,
-    getWeekDays,
-    modeProgress,
-    cellSize,
+    monthDays,
+    weekDays,
     rows,
     selectedRow,
-    showWeekOverlay
+    modeProgress,
+    cellSize,
+    selectedDate,
+    onSelectDate,
 }: Props) {
-    const monthDays = useMemo(() => getMonthDays(page.startDate), [page.startDate, getMonthDays]);
-
-    const weekStart = useMemo(
-        () => startOfWeek(selectedDate),
-        [selectedDate]
-    );
-
-    const weekDays = useMemo(
-        () => getWeekDays(weekStart),
-        [weekStart, getWeekDays]
-    );
-
-    const canShowOverlayHere = showWeekOverlay && isSameMonth(page.startDate, selectedDate);
-
-    const isWeekVisible = modeProgress.value > 0.99;
-
     const containerStyle = useAnimatedStyle(() => {
         const h = interpolate(
             modeProgress.value,
@@ -58,7 +39,7 @@ export default function CalendarPageAnimatedView({
         };
     }, [cellSize, rows]);
 
-    const monthShiftStyle = useAnimatedStyle(() => {
+    const monthViewAnimatedStyle = useAnimatedStyle(() => {
         const shift = -(selectedRow * cellSize);
         const ty = interpolate(
             modeProgress.value,
@@ -72,24 +53,25 @@ export default function CalendarPageAnimatedView({
         );
         return {
             transform: [{ translateY: ty }],
-            opacity
+            opacity,
+            zIndex: 1
         };
     }, [cellSize, selectedRow]);
 
-    const weekHiddenStyle = useAnimatedStyle(() => {
+    const weekViewAnimatedStyle = useAnimatedStyle(() => {
         const opacity = interpolate(
             modeProgress.value,
             [0.99, 1],
             [0, 1]
         );
-        return { opacity };
-    }, [canShowOverlayHere])
+        return { opacity, zIndex: 0 };
+    }, [])
 
     return (
         <Animated.View style={containerStyle}>
+            {/* 월 모드 */}
             <Animated.View
-                style={monthShiftStyle}
-                pointerEvents={isWeekVisible ? 'none' : 'auto'}
+                style={monthViewAnimatedStyle}
             >
                 <CalendarMonthView
                     monthStart={page.startDate}
@@ -99,9 +81,9 @@ export default function CalendarPageAnimatedView({
                 />
             </Animated.View>
 
+            {/* 주 모드 */}
             <Animated.View
-                style={[StyleSheet.absoluteFill, weekHiddenStyle]}
-                pointerEvents={isWeekVisible ? 'auto' : 'none'}
+                style={[StyleSheet.absoluteFill, weekViewAnimatedStyle]}
             >
                 <CalendarWeekView
                     weekStart={page.startDate}

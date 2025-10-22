@@ -35,7 +35,6 @@ export default function CalendarWeekView({
 const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
-        backgroundColor: 'yellow'
     }
 });
 
